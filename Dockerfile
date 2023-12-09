@@ -1,12 +1,12 @@
-FROM python:3.9
+FROM python:3.11
 
 STOPSIGNAL SIGUSR1
 
 RUN pip install --upgrade pip
 RUN pip install PyYAML
-RUN pip install pyproj
 RUN pip install requests
 RUN pip install dateutils
+RUN pip install lxml
 
 
 RUN mkdir -p /srv/metroterm/out

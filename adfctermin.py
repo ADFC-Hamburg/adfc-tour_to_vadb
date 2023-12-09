@@ -108,6 +108,7 @@ class ADFCTermin:
                  title: str,
                  shortDesc: str,
                  descr: str,
+                 bookingLink: str,
                  laenge: str,
                  minPreis: float,
                  maxPreis: float,
@@ -116,11 +117,17 @@ class ADFCTermin:
                  imageCopyright: str,
                  startLat: float,
                  startLon: float,
+                 startName: str,
+                 startStreet: str,
+                 startCity: str,
+                 startZipCode: str,
                  kategorie: Kategorie,
                  radTypen: list[RadTypEignung],
                  zielgruppen: list[Zielgruppen],
                  thema: list[Thema],
                  eigenschaften: list[Eigenschaften],
+                 changedDate: datetime.datetime,
+                 publishDate: datetime.datetime
                  ):
         self.id = id
         self.start = start
@@ -129,6 +136,7 @@ class ADFCTermin:
         self.title = title
         self.shortDesc = shortDesc
         self.desc = descr
+        self.bookingLink = bookingLink
         self.laenge = laenge
         self.minPreis = minPreis
         self.maxPreis = maxPreis
@@ -137,11 +145,17 @@ class ADFCTermin:
         self.imageCopyright = imageCopyright
         self.startLat = startLat
         self.startLon = startLon
+        self.startName = startName
+        self.startStreet = startStreet
+        self.startCity = startCity
+        self.startZipCode =startZipCode
         self.kategorie = kategorie
         self.radTypen = radTypen
         self.zielgruppen = zielgruppen
         self.thema = thema
         self.eigenschaften = eigenschaften
+        self.changedDate = changedDate
+        self.publishDate = publishDate
 
     def getId(self) -> str:
         return self.id
@@ -203,3 +217,24 @@ class ADFCTermin:
 
     def getStartLon(self) -> float:
         return self.startLon
+
+    def getStartName(self) -> str:
+        return self.startName
+
+    def getStartStreet(self) -> str:
+        return self.startStreet
+
+    def getStartZipCode(self) -> str:
+        return self.startZipCode
+
+    def getStartCity(self) -> str:
+        return self.startCity
+
+    def getBookingLink(self) -> str:
+        return self.bookingLink
+
+    def getChangedDate(self) -> datetime:
+        return self.changedDate
+
+    def getPublishDate(self) -> datetime:
+        return self.publishDate

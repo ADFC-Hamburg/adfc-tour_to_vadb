@@ -1,8 +1,11 @@
 from xml.sax.saxutils import XMLGenerator
 from adfctermin import ADFCTermin
-from pyproj import Geod
 from lxml import etree
-from  shutil import copyfile
+from shutil import copyfile
+from base64 import encodebytes
+from struct import pack
+from os.path import isfile
+
 def validate(xml_path: str, xsd_path: str) -> bool:
 
     xmlschema_doc = etree.parse(xsd_path)
@@ -24,10 +27,10 @@ def write_de(xml, tag: str, out_str: str):
     xml.endElement('I18n')
     xml.endElement(tag)
 
-def distance(lat0, lon0, lat1, lon1):
-    geod = Geod(ellps='WGS84')
-    azimuth1, azimuth2, distance = geod.inv(lon0, lat0, lon1, lat1)
-    return distance
+def write_str(xml, tag: str, out_str: str):
+    xml.startElement(tag, {})
+    xml.characters(out_str)
+    xml.endElement(tag)
 
 def write_tour(xml, termin:ADFCTermin, cfg):
     tour={}
@@ -53,6 +56,8 @@ def write_tour(xml, termin:ADFCTermin, cfg):
         )
     write_de(xml, 'shortDescription', description)
     write_de(xml, 'link', termin.getAdfcUrl())
+    if termin.getBookingLink() != '':
+        write_de(xml,'bookingLink', termin.getBookingLink())
     #write_de(xml, 'linkText', 'Mehr Infos im ADFC Tourenportal')
 
     xml.startElement('categories', {})
@@ -104,21 +109,42 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     xml.endElement('imageType')
     xml.endElement('EventImage')
     xml.endElement('media')
-    maxDistance = 100
-    nearestPoint = None  # Default Location
-    lat = termin.getStartLat()
-    lon = termin.getStartLon()
-    for loc in cfg['locs']:
-        locDistance = distance(
-            loc['latitude'], loc['longitude'], lat, lon)
-        if locDistance < maxDistance:
-            maxDistance = locDistance
-            nearestPoint = loc
-    poi_id = "6137"
-    if nearestPoint is not None:
-        poi_id = str(nearestPoint['poi'])
+    write_str(xml,'creationTime',termin.getPublishDate().strftime("%Y-%m-%d %H:%M:%s"))
+    write_str(xml,'lastChangeTime',termin.getChangedDate().strftime("%Y-%m-%d %H:%M:%s"))
+    pack_float=pack('ff', termin.getStartLat(),termin.getStartLon())
+    poi_id = "ADFC_HH_v1_%s" % encodebytes(pack_float).decode().strip()
     xml.startElement('location', {})
     xml.startElement('AddressPoi', {'id': poi_id})
+    xml.startElement('languages', {})
+    xml.startElement('Language', {'id':"1"})
+    xml.endElement('Language')
+    xml.endElement('languages')
+    xml.startElement('types',{})
+    xml.startElement('AddressPoiType', {'id':"3"})
+    xml.endElement('AddressPoiType')
+    xml.endElement('types')
+    title=''
+    if termin.getStartName() != '':
+        title=termin.getStartName()
+    else:
+        title="%s, %s %s" % (termin.getStartStreet(), termin.getStartZipCode(), termin.getStartCity())
+    write_de(xml,'title', title)
+    xml.startElement('contact1',{})
+    xml.startElement('address',{})
+    write_str(xml,'street',termin.getStartStreet())
+    #write_str(xml,'streetNo',termin.getStartStreetNo())
+    write_str(xml,'zipcode',termin.getStartZipCode())
+    write_str(xml,'city',termin.getStartCity())
+    xml.endElement('address')
+    xml.endElement('contact1')
+    xml.startElement('geoInfo',{})
+    xml.startElement('GeoInfo',{})
+    xml.startElement('coordinates',{})
+    write_str(xml,'latitude',"%f" % termin.getStartLat())
+    write_str(xml,'longitude',"%f" % termin.getStartLon())
+    xml.endElement('coordinates')
+    xml.endElement('GeoInfo')
+    xml.endElement('geoInfo')
     xml.endElement('AddressPoi')
     xml.endElement('location')
     #xml.startElement('contributor', {})
@@ -128,7 +154,7 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     xml.endElement('Event')
 
 
-def write_xml(terminlist, cfg, filename):
+def write_xml(terminlist, cfg, filename, xsd_filename):
     tmpfilename="/tmp/vadb-metropolregion.xml"
     outfile = open(tmpfilename, 'w')
     xml = XMLGenerator(outfile, encoding='utf-8')
@@ -139,7 +165,8 @@ def write_xml(terminlist, cfg, filename):
     xml.endElement('events')
     xml.endDocument()
     outfile.close()
-    if validate(tmpfilename, "standard-import.xsd"):
+
+    if not(isfile(xsd_filename)) or validate(tmpfilename, xsd_filename):
         copyfile(tmpfilename, filename)
     else:
          raise Exception("XSD does not validate")
