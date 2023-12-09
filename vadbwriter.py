@@ -1,6 +1,18 @@
 from xml.sax.saxutils import XMLGenerator
 from adfctermin import ADFCTermin
 from pyproj import Geod
+from lxml import etree
+from  shutil import copyfile
+def validate(xml_path: str, xsd_path: str) -> bool:
+
+    xmlschema_doc = etree.parse(xsd_path)
+    xmlschema = etree.XMLSchema(xmlschema_doc)
+
+    xml_doc = etree.parse(xml_path)
+    result = xmlschema.validate(xml_doc)
+
+    return result
+
 def write_de(xml, tag: str, out_str: str):
     xml.startElement(tag, {})
     xml.startElement('I18n', {})
@@ -21,12 +33,12 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     tour={}
 
     xml.startElement('Event', {'id': termin.getId()})
-    xml.startElement('cancelled', {})
-    if termin.isCannceld():
-        xml.characters('true')
-    else:
-        xml.characters('false')
-    xml.endElement('cancelled')
+    #xml.startElement('cancelled', {})
+    #if termin.isCannceld():
+    #    xml.characters('true')
+    #else:
+    #    xml.characters('false')
+    #xml.endElement('cancelled')
     xml.startElement('languages', {})
     xml.startElement('Language', {'id': '1'})
     xml.endElement('Language')
@@ -41,13 +53,13 @@ def write_tour(xml, termin:ADFCTermin, cfg):
         )
     write_de(xml, 'shortDescription', description)
     write_de(xml, 'link', termin.getAdfcUrl())
-    write_de(xml, 'linkText', 'Mehr Infos im ADFC Tourenportal')
+    #write_de(xml, 'linkText', 'Mehr Infos im ADFC Tourenportal')
 
     xml.startElement('categories', {})
     xml.startElement('Category', {"id": "36"})
     xml.endElement('Category')
     xml.endElement('categories')
-    xml.startElement('pricinig', {})
+    xml.startElement('pricing', {})
     minPrice=termin.getMinPreis()
     maxPrice=termin.getMaxPreis()
     if maxPrice == 0:
@@ -61,9 +73,9 @@ def write_tour(xml, termin:ADFCTermin, cfg):
         xml.startElement('toPrice', {})
         xml.characters(f"{maxPrice:.2f}")
         xml.endElement('toPrice')
-    xml.endElement('pricinig')
+    xml.endElement('pricing')
     xml.startElement('eventDates', {})
-    xml.startElement('SpecificEventData', {})
+    xml.startElement('SpecificEventDate', {})
     xml.startElement('date', {})
     xml.characters(termin.getStartLocalTime().strftime('%Y-%m-%d'))
     xml.endElement('date')
@@ -73,7 +85,7 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     xml.startElement('duration', {})
     xml.characters("%d" % termin.getDurationInMinutes())
     xml.endElement('duration',)
-    xml.endElement('SpecificEventData')
+    xml.endElement('SpecificEventDate')
     xml.endElement('eventDates')
     xml.startElement('media', {})
     xml.startElement('EventImage', {})
@@ -81,6 +93,8 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     xml.startElement('PooledEventMedium', {
                      'url': termin.getImageUrl()
                      })
+    write_de(xml, 'title', '')
+    write_de(xml, 'description', '')
     write_de(xml, 'copyright', termin.getImageCopyright())
     xml.endElement('PooledEventMedium')
     xml.endElement('pooledMedium')
@@ -107,15 +121,16 @@ def write_tour(xml, termin:ADFCTermin, cfg):
     xml.startElement('AddressPoi', {'id': poi_id})
     xml.endElement('AddressPoi')
     xml.endElement('location')
-    xml.startElement('contributor', {})
-    xml.startElement('AddressPoi', {'id': '6137'})
-    xml.endElement('AddressPoi')
-    xml.endElement('contributor')
+    #xml.startElement('contributor', {})
+    #xml.startElement('AddressPoi', {'id': '6137'})
+    #xml.endElement('AddressPoi')
+    #xml.endElement('contributor')
     xml.endElement('Event')
 
 
 def write_xml(terminlist, cfg, filename):
-    outfile = open(filename, 'w')
+    tmpfilename="/tmp/vadb-metropolregion.xml"
+    outfile = open(tmpfilename, 'w')
     xml = XMLGenerator(outfile, encoding='utf-8')
     xml.startDocument()
     xml.startElement('events', {})
@@ -124,3 +139,7 @@ def write_xml(terminlist, cfg, filename):
     xml.endElement('events')
     xml.endDocument()
     outfile.close()
+    if validate(tmpfilename, "standard-import.xsd"):
+        copyfile(tmpfilename, filename)
+    else:
+         raise Exception("XSD does not validate")
