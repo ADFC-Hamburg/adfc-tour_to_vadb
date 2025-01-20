@@ -26,8 +26,8 @@ def read_cfg_file():
 
 
 def fetch_touren(unit, cfg, start_date, end_date):
-    # url="%s&unitKey=%d" % (cfg['search_url'],unit_key)
-    # print(url)
+    log.debug("Fetching tours for unit: %s from %s to %s",
+              unit['name'], start_date, end_date)
     params = cfg['static_search_params']
     params['unitKey'] = unit['key']
     params['beginning'] = start_date.strftime('%Y-%m-%d')
@@ -35,16 +35,20 @@ def fetch_touren(unit, cfg, start_date, end_date):
     filename = "/tmp/adfc_search_%s_%s.json" % (unit['name'],
                                                 start_date.strftime('%Y-%m-%d'))
     if os.path.isfile(filename):
+        log.debug("Loading tours from cache file: %s", filename)
         with open(filename) as json_file:
             data = json.load(json_file)
         items = data['items']
     else:
+        log.debug("Fetching tours from URL: %s with params: %s",
+                  cfg['search_url'], params)
         response = requests.get(cfg['search_url'], params=params)
-        outfile = open(filename, 'w')
-        outfile.write(response.text)
-        outfile.close()
+        log.debug("Saving fetched tours to cache file: %s", filename)
+        with open(filename, 'w') as outfile:
+            outfile.write(response.text)
         items = response.json()['items']
-    print(f"Unit {unit['key']} len: {len(items)}")
+
+    log.info("Fetched %d tours for unit: %s", len(items), unit['name'])
     return items
 
 
