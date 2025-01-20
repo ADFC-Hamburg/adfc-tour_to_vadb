@@ -165,7 +165,11 @@ class ADFCTermin:
         return self.id
 
     def getDurationInMinutes(self) -> int:
-        return ((self.ende-self.start).total_seconds()/60)
+        rtn = ((self.ende-self.start).total_seconds()/60)
+        # Duration darf nicht null sein im XML
+        if rtn <= 1:
+            rtn = 1
+        return rtn
 
     def getStartLocalTime(self) -> str:
         berlin_zone = tz.gettz('Europe/Berlin')
