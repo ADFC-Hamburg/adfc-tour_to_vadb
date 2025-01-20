@@ -19,7 +19,6 @@ CAT_GEEIGNET = "Geeignet für"
 CAT_WEITERE = "Weitere Eigenschaften"
 
 
-
 def read_cfg_file():
     with open('config.yml', 'r') as file:
         cfg = yaml.safe_load(file)
@@ -34,24 +33,26 @@ def fetch_touren(unit, cfg, start_date, end_date):
     params['beginning'] = start_date.strftime('%Y-%m-%d')
     params['end'] = end_date.strftime('%Y-%m-%d')
     filename = "/tmp/adfc_search_%s_%s.json" % (unit['name'],
-                                         start_date.strftime('%Y-%m-%d'))
+                                                start_date.strftime('%Y-%m-%d'))
     if os.path.isfile(filename):
         with open(filename) as json_file:
             data = json.load(json_file)
-        return data['items']
+        items = data['items']
     else:
         response = requests.get(cfg['search_url'], params=params)
         outfile = open(filename, 'w')
         outfile.write(response.text)
         outfile.close()
-        return response.json()['items']
+        items = response.json()['items']
+    print(f"Unit {unit['key']} len: {len(items)}")
+    return items
 
 
 def fetch_tour(cfg, uuid, now, yesterday):
     filename = "/tmp/adfc_event_%s_%s.json" % (uuid,
-                                         now.strftime('%Y-%m-%d'))
+                                               now.strftime('%Y-%m-%d'))
     yesterday_filename = "/tmp/adfc_event_%s_%s.json" % (uuid,
-                                         yesterday.strftime('%Y-%m-%d'))
+                                                         yesterday.strftime('%Y-%m-%d'))
 
     if os.path.isfile(filename):
         with open(filename) as json_file:
@@ -63,20 +64,21 @@ def fetch_tour(cfg, uuid, now, yesterday):
         if os.path.isfile(yesterday_filename):
             with open(yesterday_filename) as json_file:
                 data = json.load(json_file)
-            last_changed=data['ADFCHH_lastChanged']
+            last_changed = data['ADFCHH_lastChanged']
             del data['ADFCHH_lastChanged']
-            if json.dumps(data)==json.dumps(json.loads(response.text)):
-                data['ADFCHH_lastChanged']=last_changed
+            if json.dumps(data) == json.dumps(json.loads(response.text)):
+                data['ADFCHH_lastChanged'] = last_changed
             else:
-                data=json.loads(response.text)
-                data['ADFCHH_lastChanged']=now.isoformat()
+                data = json.loads(response.text)
+                data['ADFCHH_lastChanged'] = now.isoformat()
         else:
-            data=json.loads(response.text)
-            data['ADFCHH_lastChanged']=now.isoformat()
+            data = json.loads(response.text)
+            data['ADFCHH_lastChanged'] = now.isoformat()
         outfile = open(filename, 'w')
         outfile.write(json.dumps(data))
         outfile.close()
         return data
+
 
 def main():
     cfg = read_cfg_file()
@@ -89,7 +91,7 @@ def main():
         touren = touren+data
     terminlist = []
     log.info('Hallo')
-    yesterday=start_date- datetime.timedelta(days=1)
+    yesterday = start_date - datetime.timedelta(days=1)
     for tour in touren:
         link = 'https://touren-termine.adfc.de/radveranstaltung/'+tour['cSlug']
         extra = fetch_tour(cfg, tour['eventItemId'], start_date, yesterday)
@@ -146,7 +148,8 @@ def main():
                     error = True
             elif tags['category'] == CAT_ZIELGRUPPE:
                 if tags['tag'] in adfctermin.ZIELGRUPPEN_DICT.keys():
-                    zielgruppen.append(adfctermin.ZIELGRUPPEN_DICT[tags['tag']])
+                    zielgruppen.append(
+                        adfctermin.ZIELGRUPPEN_DICT[tags['tag']])
                 else:
                     log.error('Unbekannter Zielgruppe: %s bei Termin %s' %
                               (tags['tag'], link))
@@ -162,7 +165,8 @@ def main():
 
             elif tags['category'] == CAT_WEITERE:
                 if tags['tag'] in adfctermin.EIGENSCHAFTEN_DICT.keys():
-                    eigenschaften.append(adfctermin.EIGENSCHAFTEN_DICT[tags['tag']])
+                    eigenschaften.append(
+                        adfctermin.EIGENSCHAFTEN_DICT[tags['tag']])
                 else:
                     log.error('Unbekannter Eigenschaft: %s bei Termin %s' %
                               (tags['tag'], link))
@@ -173,13 +177,14 @@ def main():
                           (tags['category'], link))
                 error = True
         if not error:
-            if (tour['extra']['eventItem']['cRegistrationType']=='None'):
-                bookingLink=''
-            elif (tour['extra']['eventItem']['cRegistrationType']=='Internal'):
-                bookingLink=link
-            elif (tour['extra']['eventItem']['cRegistrationType']=='External'):
-                bookingLink=tour['extra']['eventItem']['cExternalRegistrationUrl']
-            publishDate=datetime.datetime.fromisoformat(tour['extra']['eventItem']['cPublishDate'])
+            if (tour['extra']['eventItem']['cRegistrationType'] == 'None'):
+                bookingLink = ''
+            elif (tour['extra']['eventItem']['cRegistrationType'] == 'Internal'):
+                bookingLink = link
+            elif (tour['extra']['eventItem']['cRegistrationType'] == 'External'):
+                bookingLink = tour['extra']['eventItem']['cExternalRegistrationUrl']
+            publishDate = datetime.datetime.fromisoformat(
+                tour['extra']['eventItem']['cPublishDate'])
             termin = adfctermin.ADFCTermin(
                 id=tour['eventItemId'],
                 start=datetime.datetime.fromisoformat(tour['beginning']),
@@ -207,9 +212,12 @@ def main():
                 thema=thema,
                 eigenschaften=eigenschaften,
                 publishDate=publishDate,
-                changedDate=datetime.datetime.fromisoformat(tour['extra']['ADFCHH_lastChanged'])
+                changedDate=datetime.datetime.fromisoformat(
+                    tour['extra']['ADFCHH_lastChanged'])
             )
             terminlist.append(termin)
-    write_xml(terminlist, cfg, '/srv/metroterm/out/vadb-metropolregion.xml', 'standard-import.xsd')
+    write_xml(terminlist, cfg,
+              '/srv/metroterm/out/vadb-metropolregion.xml', 'standard-import.xsd')
+
 
 main()

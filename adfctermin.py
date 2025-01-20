@@ -2,15 +2,18 @@ import datetime
 import enum
 from dateutil import tz
 
-def invmap(my_map:dict) -> dict:
+
+def invmap(my_map: dict) -> dict:
     inv_map = {}
     for k, v in my_map.items():
         inv_map[v] = k
     return inv_map
 
+
 class Status(enum.Enum):
     Published = 1
     Cannceld = 2
+
 
 class Kategorie(enum.Enum):
     Tagestour = 1
@@ -95,7 +98,8 @@ EIGENSCHAFTEN_DICT = {
     'Einkehr in Restauration': Eigenschaften.Einkehr,
     'Picknik': Eigenschaften.Picknik,
     'Badepause': Eigenschaften.Badepause,
-    'Zusatzkosten': Eigenschaften.Zusatzkosten
+    'Zusatzkosten': Eigenschaften.Zusatzkosten,
+    'Picknick (Selbstverpflegung)': Eigenschaften.Picknik,
 }
 
 
@@ -148,7 +152,7 @@ class ADFCTermin:
         self.startName = startName
         self.startStreet = startStreet
         self.startCity = startCity
-        self.startZipCode =startZipCode
+        self.startZipCode = startZipCode
         self.kategorie = kategorie
         self.radTypen = radTypen
         self.zielgruppen = zielgruppen
@@ -180,19 +184,19 @@ class ADFCTermin:
         return invmap(KATEGORIE_DICT)[self.kategorie]
 
     def getRadTypenAsStringList(self) -> list:
-        rev_map= invmap(RADTYPEN_DICT)
-        rtn=[]
+        rev_map = invmap(RADTYPEN_DICT)
+        rtn = []
         for ele in self.radTypen:
             rtn.append(rev_map[ele])
-        #print(rtn)
+        # print(rtn)
         return rtn
 
     def getTourLaenge(self) -> str:
         return self.laenge
 
     def getZielgruppenAsStringList(self) -> list:
-        rev_map= invmap(ZIELGRUPPEN_DICT)
-        rtn=[]
+        rev_map = invmap(ZIELGRUPPEN_DICT)
+        rtn = []
         for ele in self.zielgruppen:
             rtn.append(rev_map[ele])
         return rtn
